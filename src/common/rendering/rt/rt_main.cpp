@@ -3394,7 +3394,7 @@ void rtx::RTFrameBuffer::RT_DrawFrame()
         .sType = RG_STRUCTURE_TYPE_DRAW_FRAME_TEXTURES_PARAMS,
         .pNext = &volumetrics_params,
         .dynamicSamplerFilter =
-            cvar::rt_smoothtextures ? RG_SAMPLER_FILTER_LINEAR : RG_SAMPLER_FILTER_NEAREST,
+            cvar::rt_texture_filter == 1 ? RG_SAMPLER_FILTER_LINEAR : RG_SAMPLER_FILTER_NEAREST,
         .mipLodBiasOffset       = float( cvar::rt_mip_bias ),
         .normalMapStrength      = cvar::rt_normalmap_stren,
         .emissionMapBoost       = cvar::rt_emis_mapboost,
@@ -3415,6 +3415,7 @@ void rtx::RTFrameBuffer::RT_DrawFrame()
         .spriteRoughMin         = cvar::rt_sprite_rough_min,
         .spriteNormalStrength   = cvar::rt_sprite_normal,
         .worldPbr               = std::clamp( float{ cvar::rt_tex_pbr_mix }, 0.f, 1.f ),
+        .albedoFilterMode       = cvar::rt_texture_filter == 2 ? 1u : 0u,
     };
 
     float dirtscale = ( ( powerupflags & RT_POWERUP_FLAG_RADIATIONSUIT_BIT ) ||

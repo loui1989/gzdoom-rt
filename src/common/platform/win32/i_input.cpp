@@ -645,6 +645,16 @@ void I_StartTic ()
 	I_CheckGUICapture ();
 	EventHandlerResultForNativeMouse = sysCallbacks.WantNativeMouse && sysCallbacks.WantNativeMouse();
 	I_CheckNativeMouse (false, EventHandlerResultForNativeMouse);
+#if HAVE_RT
+	// SetCursorState only calls ShowCursor while we are the foreground window.
+	// The RT boot is seconds long, so the grab often lands while another window
+	// (the launcher, a desktop click) is in front: the cursor then stayed drawn
+	// at the centre of a fullscreen game, and alt-tab did not help because a
+	// fullscreen grab never un-grabs -- only alt+enter re-applied it (GitHub
+	// issue #5). Re-apply every tic; it is a no-op unless the state is wrong.
+	extern void RT_EnsureCursorState();
+	RT_EnsureCursorState();
+#endif
 	I_GetEvent ();
 }
 

@@ -161,7 +161,7 @@ bool ReadPngSize( const char* path, int* outW, int* outH )
 
 // Register the name so RTGL1 has something to hang the rt/mat override on.
 // Exactly RT_RegisterFullscreenImage's trick, with NEAREST rather than LINEAR:
-// everything in this game is nearest-filtered (rt_smoothtextures ships false),
+// everything in this game is nearest-filtered (rt_texture_filter defaults to 0),
 // and a smoothed 20-pixel cut-out would be the one soft-edged object on screen.
 void RegisterShardTexture( const char* name )
 {
@@ -234,8 +234,8 @@ bool RegisterTextureFromFile( const char* name, const char* path, int* outW, int
         .pTextureName = name,
         .pPixels      = px,
         .size         = { uint32_t( w ), uint32_t( h ) },
-        // NEAREST, like everything else in this game: rt_smoothtextures ships
-        // false, and a smoothed flame would be the one soft-edged object on
+        // NEAREST, like everything else in this game: rt_texture_filter ships
+        // 0 (nearest), and a smoothed flame would be the one soft-edged object on
         // screen. It also means the flipbook's cells need no padding -- there is
         // no bleed across a cell boundary to guard against.
         .filter       = RG_SAMPLER_FILTER_NEAREST,

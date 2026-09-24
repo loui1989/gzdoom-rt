@@ -1504,7 +1504,13 @@
     RT_CVAR( rt_emis_mapboost,          200.f,  "indirect illumination emissiveness" )
     RT_CVAR( rt_emis_maxscrcolor,       8.f,    "burn on-screen emissive colors" )
     RT_CVAR( rt_emis_additive_dflt,     0.5f,   "emission value for objects with additive blending" )
-    RT_CVAR( rt_smoothtextures,         false,  "enable linear texture filtering" )
+    // Replaces the old bool rt_smoothtextures (GitHub issue #15: gl_texture_filter
+    // does nothing under RT, and the linear switch was console-only). A MENU
+    // setting (Options > Quality), so archived and deliberately unpinned, like
+    // the rest of that menu. 2 is shader-side (RTGL1 albedoFilterMode) and
+    // covers the ray-traced albedo only; normal/ORM/emissive stay nearest.
+    RT_CVAR( rt_texture_filter,         0,      "albedo texture filtering: 0 = nearest (crisp texels), 1 = bilinear, "
+                                                "2 = N64 three-point (the original console's filter)" )
     RT_CVAR( rt_tex_translations,       true,   "give a palette-TRANSLATED texture its own RTGL1 material name (BLUDA0 -> BLUDA0_tr7). "
                                                 "Off = stock behaviour, where every translation of a sprite is uploaded under the same "
                                                 "name and RTGL1 keeps only the FIRST one (PreferExistingMaterials) -- which is why "

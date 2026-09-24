@@ -504,7 +504,7 @@ public:
 
         // Doom64-RT: the sky is the one place NEAREST filtering is wrong.
         //
-        // rt_smoothtextures is off by default and pinned off, which is right for
+        // rt_texture_filter defaults to 0 (nearest), which is right for
         // the game -- Doom's art is 64x64 pixel work and wants crisp texels. The
         // sky is the opposite case: the cloud deck stretches a 1024px slice
         // across a disc that fills the upper hemisphere, so near the zenith one
@@ -515,7 +515,7 @@ public:
         // Per-texture, not global: RTGL1's SamplerManager only rebinds the
         // dynamic filter for handles created with RG_SAMPLER_FILTER_AUTO
         // (hasDynamicSamplerFilter), so naming a filter explicitly here opts
-        // this texture out of rt_smoothtextures and leaves everything else
+        // this texture out of rt_texture_filter and leaves everything else
         // exactly as it was.
         const bool smoothsky = m_name.starts_with( "CLOUDV" ) || //
                                m_name.starts_with( "BOLT" ) ||   //
