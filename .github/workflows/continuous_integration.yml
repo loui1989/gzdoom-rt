@@ -1,6 +1,7 @@
 name: Continuous Integration
 
-on: [push, pull_request]
+# run by hand only (the macOS port is built locally with build.command)
+on: workflow_dispatch
 
 jobs:
   build:
