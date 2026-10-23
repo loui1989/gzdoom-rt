@@ -37,6 +37,7 @@
 #include <sys/sysctl.h>
 
 #include "i_system.h"
+#include "m_argv.h"
 #include "st_console.h"
 #include "v_text.h"
 
@@ -127,6 +128,15 @@ int I_PickIWad(WadStuff* const wads, const int numwads, const bool showwin, cons
 	{
 		return defaultiwad;
 	}
+
+#if HAVE_RT
+	// started by the Doom 64 RT launcher, which passes the IWAD it found: no picker
+	// (as on Windows, where -rtnolauncher skips it the same way)
+	if (Args->CheckParm("-rtnolauncher") > 0 && numwads == 1)
+	{
+		return defaultiwad >= 0 ? defaultiwad : 0;
+	}
+#endif
 
 	I_SetMainWindowVisible(false);
 
