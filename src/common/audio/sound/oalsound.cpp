@@ -72,7 +72,8 @@ CVAR (String, snd_alresampler, "Default", CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 #ifdef __APPLE__
 // User's library (like OpenAL Soft installed manually or via Homebrew) has precedence
 // over Apple's OpenAL framework which lacks several important features
-#define OPENALLIB1 "libopenal.1.dylib"
+// (the RT build bundles OpenAL Soft next to the executable)
+#define OPENALLIB1 NicePath("$PROGDIR/libopenal.1.dylib").GetChars()
 #define OPENALLIB2 "OpenAL.framework/OpenAL"
 #else // !__APPLE__
 #define OPENALLIB1 NicePath("$PROGDIR/" OPENALLIB).GetChars()
