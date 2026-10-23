@@ -2,13 +2,20 @@
     #define NOMINMAX
 #endif
 
+#ifdef _WIN32
 #include "i_mainwindow.h"
+#include "win32rtvideo.h"
+#endif
+#include "rt_platform.h"
 #include "rt_stats.h"
 #include "i_time.h"
 #include "m_argv.h"
-#include "win32rtvideo.h"
 
+#ifdef _WIN32
 #include "base_sysfb.h"
+#else
+#include "gl_sysfb.h"
+#endif
 #include "c_dispatch.h"
 #include "hw_renderstate.h"
 #include "g_levellocals.h"
@@ -37,7 +44,9 @@
 
 #include "rt_state.h"
 
+#ifdef _WIN32
 #include <shellapi.h>
+#endif
 
 #include <filesystem>
 #include <cmath>
@@ -56,7 +65,11 @@
 //
 //
 
+#ifdef _WIN32
 #define RG_USE_SURFACE_WIN32
+#elif defined( __APPLE__ )
+#define RG_USE_SURFACE_METAL
+#endif
 #include <RTGL1/RTGL1.h>
 
 // Generated fist offsets + colours for RT_UploadHandGlowLights.
@@ -205,8 +218,10 @@ void RT_SkyPrimsEndFrame()
     g_skyprims.clear();
 }
 
+#ifdef _WIN32
 // Defined below (global namespace); RT_Print in the anonymous namespace needs it.
 extern std::atomic< HWND > g_msgbox_parent;
+#endif
 
 namespace
 {
@@ -449,6 +464,7 @@ bool   g_rt_precache_capped  = false;
 
 RG_D3D12CORE_HELPER( "rt/" )
 
+#ifdef _WIN32
 Win32RTVideo::Win32RTVideo()
 {
     extern std::atomic_bool g_continueMain;
@@ -461,6 +477,13 @@ Win32RTVideo::Win32RTVideo()
         exit( 1 );
     }
 
+    RT_CreateRendererInstance( nullptr );
+}
+#endif
+
+void RT_CreateRendererInstance( void* pMetalLayer )
+{
+#ifdef _WIN32
     // warn if no needed dll-s
     if( !Args->CheckParm( "-nodllcheck" ) )
     {
@@ -544,17 +567,20 @@ Win32RTVideo::Win32RTVideo()
             }
         }
     }
+#endif // _WIN32
 
     rt = RgInterface{};
 
-#ifdef WIN32
+#ifdef _WIN32
     auto win32Info = RgWin32SurfaceCreateInfo{
         .hinstance = GetModuleHandle( NULL ),
         .hwnd      = mainwindow.GetHandle(),
     };
-#else
-    RgXlibSurfaceCreateInfo x11Info = { .dpy    = wmInfo.info.x11.display,
-                                        .window = wmInfo.info.x11.window };
+#elif defined( __APPLE__ )
+    // the CAMetalLayer of the game window's content view (i_video.mm)
+    auto metalInfo = RgMetalSurfaceCreateInfo{
+        .pLayer = static_cast< const CAMetalLayer* >( pMetalLayer ),
+    };
 #endif
 
     auto info = RgInstanceCreateInfo
@@ -565,10 +591,10 @@ Win32RTVideo::Win32RTVideo()
 
         .pAppName = "GZDoom", .pAppGUID = "8cbd354f-38d3-4173-92b9-c16b5a210b37",
 
-#if WIN32
+#if defined( _WIN32 )
         .pWin32SurfaceInfo = &win32Info,
-#else
-        .pXlibSurfaceCreateInfo  = &x11Info,
+#elif defined( __APPLE__ )
+        .pMetalSurfaceCreateInfo = &metalInfo,
 #endif
 
         .pOverrideFolderPath = "rt/",
@@ -621,7 +647,11 @@ Win32RTVideo::Win32RTVideo()
     constexpr bool isdebug = false;
 #endif
 
+#ifdef _WIN32
     const char* remixdll = g_isremix ? "\\bin_remix\\RTGL1.dll" : nullptr;
+#else
+    const char* remixdll = nullptr;
+#endif
 
     RgResult r = rgLoadLibraryAndCreate( &info, isdebug, remixdll, &rt, nullptr );
 
@@ -638,9 +668,13 @@ Win32RTVideo::Win32RTVideo()
         switch( r )
         {
             case RG_RESULT_CANT_FIND_DYNAMIC_LIBRARY:
+#ifdef __APPLE__
+                msg = std::string{ "Can't load \'rt/bin/libRTGL1.dylib\': " } + RT_PlatformLibraryError();
+#else
                 msg = remixdll  ? "Can't load Remix Renderer DLLs"
                       : isdebug ? "Can't find \'rt/bin/debug/RTGL1.dll\' file"
                                 : "Can't find \'rt/bin/RTGL1.dll\' file";
+#endif
                 break;
             case RG_RESULT_CANT_FIND_ENTRY_FUNCTION_IN_DYNAMIC_LIBRARY:
                 msg =
@@ -669,8 +703,7 @@ Win32RTVideo::Win32RTVideo()
             default: msg += std::to_string( r ); break;
         }
 
-        MessageBoxA(
-            nullptr, msg.c_str(), "Failed to initialize RT renderer", MB_ICONEXCLAMATION | MB_OK );
+        RT_PlatformMessageBox( msg.c_str(), "Failed to initialize RT renderer" );
         exit( -1 );
     }
 
@@ -731,13 +764,24 @@ Win32RTVideo::Win32RTVideo()
     }
 }
 
+#ifdef _WIN32
 DFrameBuffer* Win32RTVideo::CreateFrameBuffer()
 {
     return new RTFrameBuffer{ m_hMonitor, vid_fullscreen };
 }
+#endif
+
+SystemBaseFrameBuffer* RT_CreateFrameBuffer( void* hMonitor, bool fullscreen )
+{
+    return new RTFrameBuffer{ hMonitor, fullscreen };
+}
 
 TArray< uint8_t > rtx::RTFrameBuffer::GetScreenshotBuffer( int& pitch, ESSType& color_type, float& gamma )
 {
+#ifndef _WIN32
+    // macOS: a copy of the window's contents (i_video.mm)
+    return RT_PlatformCaptureWindow( pitch, color_type, gamma );
+#else
     // RTGL1 exposes no GPU readback for the presented frame. Capture the HWND
     // after present so `screenshot` / Level.MakeScreenShot work (and don't need focus).
     const int w = GetClientWidth() > 0 ? GetClientWidth() : GetWidth();
@@ -824,9 +868,10 @@ TArray< uint8_t > rtx::RTFrameBuffer::GetScreenshotBuffer( int& pitch, ESSType& 
     DeleteDC( hdcMem );
     ReleaseDC( hwnd, hdcWin );
     return out;
+#endif // _WIN32
 }
 
-void Win32RTVideo::Shutdown()
+void RT_DestroyRendererInstance()
 {
     if( !rt.rgDestroyInstance )
     {
@@ -836,23 +881,30 @@ void Win32RTVideo::Shutdown()
     RgResult r = rt.rgDestroyInstance();
     if( r != RG_RESULT_SUCCESS )
     {
-        MessageBoxA(
-            nullptr, "rgDestroyAndUnloadLibrary has failed", "Fail", MB_ICONEXCLAMATION | MB_OK );
+        RT_PlatformMessageBox( "rgDestroyAndUnloadLibrary has failed", "Fail" );
         exit( -1 );
     }
 
     rt = {};
 }
 
+#ifdef _WIN32
+void Win32RTVideo::Shutdown()
+{
+    RT_DestroyRendererInstance();
+}
+#endif
+
 void RT_ShowWarningMessageBox( const char* msg )
 {
 #ifdef _WIN32
     MessageBoxA( g_msgbox_parent.load(), msg, "Warning - Ray Tracing", MB_ICONEXCLAMATION | MB_OK );
 #else
-    assert( 0 );
+    RT_PlatformMessageBox( msg, "Warning - Ray Tracing" );
 #endif
 }
 
+#ifdef _WIN32
 bool RT_AskToOpenUrl( const char* heading, const char* msg, const wchar_t* url )
 {
     int l = MessageBoxA( g_msgbox_parent.load(), msg, heading, MB_ICONEXCLAMATION | MB_YESNO );
@@ -863,6 +915,7 @@ bool RT_AskToOpenUrl( const char* heading, const char* msg, const wchar_t* url )
     }
     return false;
 }
+#endif
 
 //
 //
@@ -2236,8 +2289,10 @@ void rtx::RTFrameBuffer::RT_BeginFrame()
     {
         if( g_rt_skipinitframes == 0 )
         {
+#ifdef _WIN32
             RT_CloseLauncherWindow(); // renderer is ready, close launcher window
             PositionWindow( IsFullscreen() );
+#endif
             g_rt_forcenofocuschange = false;
         }
         --g_rt_skipinitframes;

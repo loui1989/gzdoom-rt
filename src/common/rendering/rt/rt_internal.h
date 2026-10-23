@@ -49,7 +49,11 @@
 #include "palentry.h"
 #include "vectors.h"
 
+#ifdef _WIN32
 #define RG_USE_SURFACE_WIN32
+#elif defined( __APPLE__ )
+#define RG_USE_SURFACE_METAL
+#endif
 #include <RTGL1/RTGL1.h>
 
 #include <algorithm>

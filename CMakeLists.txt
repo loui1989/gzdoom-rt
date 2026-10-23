@@ -309,7 +309,12 @@ else()
 	set( REL_LINKER_FLAGS "" )
 	set( ALL_C_FLAGS "-ffp-contract=off" )
 	
-	set( ALL_C_FLAGS "${ALL_C_FLAGS} /DHAVE_RT=0" )
+	if ( HAVE_RT AND APPLE )
+		# macOS: RTGL1 on Metal (rt/bin/libRTGL1.dylib), see common/rendering/rt/rt_platform.h
+		set( ALL_C_FLAGS "${ALL_C_FLAGS} -DHAVE_RT=1" )
+	else()
+		set( ALL_C_FLAGS "${ALL_C_FLAGS} -DHAVE_RT=0" )
+	endif()
 
 	if ( HAVE_VULKAN )
 		set( ALL_C_FLAGS "${ALL_C_FLAGS} -DHAVE_VULKAN" )
@@ -338,7 +343,12 @@ else()
 
 
 	if( APPLE )
-		set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+		if( HAVE_RT )
+			# ray tracing on Metal 3 (Apple silicon), C++20 library features
+			set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
+		else()
+			set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+		endif()
 		if( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" )
 			# If we're compiling with a custom GCC on the Mac (which we know since g++-4.2 doesn't support C++11) statically link libgcc.
 			set( ALL_C_FLAGS "-static-libgcc" )

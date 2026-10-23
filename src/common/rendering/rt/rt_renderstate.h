@@ -15,7 +15,11 @@
 #include "rt_internal.h"
 #include "rt_buffers.h"
 
+#ifdef _WIN32
 #include "base_sysfb.h"
+#else
+#include "gl_sysfb.h"
+#endif
 #include "hw_renderstate.h"
 #include "hw_viewpointbuffer.h"
 #include "flatvertices.h"
@@ -543,7 +547,7 @@ private:
         {
             return t;
         }
-        return std::powf( t, cvar::rt_lightlevel_exp );
+        return std::pow( t, cvar::rt_lightlevel_exp );
     }
 
     auto MakeFirstPersonQuadInWorldSpace( std::span< const RgPrimitiveVertex > verts )

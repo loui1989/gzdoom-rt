@@ -1,7 +1,11 @@
 #include "rt_cvars.h"
 #include "rt_helpers.h"
 
+#ifdef _WIN32
 #include "i_mainwindow.h"
+#else
+#include "rt_platform.h"
+#endif
 #include "i_time.h"
 #include "texturemanager.h"
 #include "v_draw.h"
@@ -255,7 +259,11 @@ namespace intro
     {
         g_rt_cutscenename = CutsceneGltfName;
         cvar::rt_classic  = 0; // cutscenes work on replacements, no classic mode available...
+#ifdef _WIN32
         if( !IsIconic( mainwindow.GetHandle() ) )
+#else
+        if( !RT_PlatformIsWindowMinimized() )
+#endif
         {
             g_cstime_start   = RT_GetCurrentTime();
             g_cstime_paused  = {};

@@ -2006,6 +2006,7 @@ DEFINE_ACTION_FUNCTION( DBlockingDescription_RT, RT_DrawDescriptions )
     return 0;
 }
 
+#ifdef _WIN32
 #define NOMINMAX
     #include "windows.h"
 
@@ -2018,5 +2019,16 @@ static std::pair< int, int > GetFullscreen()
         GetSystemMetrics( SM_CYSCREEN ),
     };
 }
+#else
+// the resolution of the screen with the game window, in pixels (i_video.mm)
+extern void RT_PlatformGetScreenSize( int& width, int& height );
+
+static std::pair< int, int > GetFullscreen()
+{
+    int w = 0, h = 0;
+    RT_PlatformGetScreenSize( w, h );
+    return { w, h };
+}
+#endif
 
 #endif // HAVE_RT

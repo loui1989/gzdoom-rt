@@ -226,6 +226,26 @@ int DoMain(int argc, char** argv)
 	progdir = [[exePath stringByDeletingLastPathComponent] UTF8String];
 	progdir += "/";
 
+#if HAVE_RT
+	// The ray tracing renderer reads its data from 'rt/' in the working directory: when
+	// started from Finder (working directory '/'), use the folder next to the app
+	// that has it, or the executable's folder.
+	if (access("rt", F_OK) != 0)
+	{
+		NSString* const appFolder = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
+		NSString* const exeFolder = [exePath stringByDeletingLastPathComponent];
+
+		for (NSString* folder in @[ appFolder, exeFolder ])
+		{
+			if (access([[folder stringByAppendingPathComponent:@"rt"] fileSystemRepresentation], F_OK) == 0)
+			{
+				chdir([folder fileSystemRepresentation]);
+				break;
+			}
+		}
+	}
+#endif
+
 	auto ret = GameMain();
 	FConsoleWindow::DeleteInstance();
 	return ret;
@@ -282,6 +302,11 @@ ApplicationController* appCtrl;
 
 extern bool AppActive;
 
+#if HAVE_RT
+// pauses / resumes the RT cutscenes' clock and music (rt_cutscene.cpp)
+extern void RT_OnHwndActivate(bool active);
+#endif
+
 - (void)applicationDidBecomeActive:(NSNotification*)aNotification
 {
 	ZD_UNUSED(aNotification);
@@ -290,6 +315,10 @@ extern bool AppActive;
 		S_SetSoundPaused(1);
 
 	AppActive = true;
+
+#if HAVE_RT
+	RT_OnHwndActivate(true);
+#endif
 }
 
 - (void)applicationWillResignActive:(NSNotification*)aNotification
@@ -300,6 +329,10 @@ extern bool AppActive;
 		S_SetSoundPaused(0);
 
 	AppActive = false;
+
+#if HAVE_RT
+	RT_OnHwndActivate(false);
+#endif
 }
 
 

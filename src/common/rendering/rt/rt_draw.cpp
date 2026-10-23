@@ -819,7 +819,7 @@ void RTRenderState::InternalDraw( std::span< const RgPrimitiveVertex > verts,
     {
         const char* want = cvar::rt_tex_probe;
         const size_t wl  = strlen( want );
-        if( wl > 0 && _strnicmp( texname, want, wl ) == 0 )
+        if( wl > 0 && strnicmp( texname, want, wl ) == 0 )
         {
             const char* srcfile = "?";
             int         srclump = -1;

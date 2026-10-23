@@ -56,7 +56,7 @@
     MSVC_VSEG FCVarDecl const *const cvardeclref_##name GCC_VSEG = &cvardecl_##name;
 
 #define RT_CVAR_COLOR( name, default_value, description ) \
-    CVARD( Color, ##name, default_value, CVAR_GLOBALCONFIG | CVAR_ARCHIVE, description )
+    CVARD( Color, name, default_value, CVAR_GLOBALCONFIG | CVAR_ARCHIVE, description )
 
 #define RT_CVAR_STRING( name, default_value, flags, description ) \
     CVARD( String, name, default_value, flags, description )

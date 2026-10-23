@@ -60,6 +60,11 @@
 #include "vulkan/system/vk_renderdevice.h"
 #endif
 
+#if HAVE_RT
+#include "rt_platform.h"
+#include <dlfcn.h>
+#endif
+
 bool I_CreateVulkanSurface(VkInstance instance, VkSurfaceKHR *surface);
 
 extern bool ToggleFullscreen;
@@ -378,6 +383,9 @@ public:
 
 	~CocoaVideo()
 	{
+#if HAVE_RT
+		RT_DestroyRendererInstance();
+#endif
 		m_vulkanSurface.reset();
 		ms_window = nil;
 	}
@@ -389,6 +397,21 @@ public:
 
 		const NSRect contentRect = [ms_window contentRectForFrameRect:[ms_window frame]];
 		SystemBaseFrameBuffer *fb = nullptr;
+
+#if HAVE_RT
+		// the ray tracing renderer (RTGL1, Vulkan on Metal) draws to the view's CAMetalLayer
+		{
+			NSView* const rtView = [[VulkanCocoaView alloc] initWithFrame:contentRect];
+			rtView.wantsLayer = YES;
+			rtView.layer.backgroundColor = NSColor.blackColor.CGColor;
+			rtView.layer.contentsScale = ms_window.backingScaleFactor;
+
+			[ms_window setContentView:rtView];
+
+			RT_CreateRendererInstance((void*)rtView.layer);
+			fb = RT_CreateFrameBuffer(nullptr, vid_fullscreen);
+		}
+#else
 
 #ifdef HAVE_VULKAN
 		if (ms_isVulkanEnabled)
@@ -468,6 +491,7 @@ public:
 #endif
 				fb = new OpenGLRenderer::OpenGLFrameBuffer(0, vid_fullscreen);
 		}
+#endif // HAVE_RT
 
 		fb->SetWindow(ms_window);
 		fb->SetMode(vid_fullscreen, vid_hidpi);
@@ -1042,3 +1066,56 @@ void I_PolyPresentDeinit()
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDeleteTextures(1, &polyTexture);
 }
+
+
+#if HAVE_RT
+
+// ---------------------------------------------------------------------------
+// The RT renderer's platform services (rt_platform.h)
+
+void RT_PlatformMessageBox(const char* text, const char* caption)
+{
+	Printf("%s: %s\n", caption ? caption : "", text ? text : "");
+
+	NSAlert* alert = [[NSAlert alloc] init];
+	[alert setMessageText:[NSString stringWithUTF8String:caption ? caption : GAMENAME]];
+	[alert setInformativeText:[NSString stringWithUTF8String:text ? text : ""]];
+	[alert setAlertStyle:NSAlertStyleWarning];
+	[alert addButtonWithTitle:@"OK"];
+	[alert runModal];
+	[alert release];
+}
+
+const char* RT_PlatformLibraryError()
+{
+	const char* const error = dlerror();
+	return error != nullptr ? error : "unknown error";
+}
+
+bool RT_PlatformIsWindowMinimized()
+{
+	NSWindow* const window = CocoaVideo::GetWindow();
+	return window != nil && [window isMiniaturized];
+}
+
+void RT_PlatformGetScreenSize(int& width, int& height)
+{
+	NSWindow* const window = CocoaVideo::GetWindow();
+	NSScreen* const screen = (window != nil && window.screen != nil) ? window.screen : [NSScreen mainScreen];
+	const NSRect frame = [screen frame];
+	const CGFloat scale = [screen backingScaleFactor];
+
+	width = int(frame.size.width * scale);
+	height = int(frame.size.height * scale);
+}
+
+TArray<uint8_t> RT_PlatformCaptureWindow(int& pitch, ESSType& color_type, float& gamma)
+{
+	// the renderer presents straight to the window's Metal layer, which can't be read back
+	pitch = 0;
+	color_type = SS_RGB;
+	gamma = 1.0f;
+	return {};
+}
+
+#endif // HAVE_RT
