@@ -61,7 +61,7 @@
 #endif
 
 #if HAVE_RT
-#include "rt_platform.h"
+#include "../../../rendering/rt/rt_platform.h"
 #include <dlfcn.h>
 #endif
 
