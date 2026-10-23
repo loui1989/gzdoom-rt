@@ -1115,7 +1115,28 @@ void RT_PlatformGetScreenSize(int& width, int& height)
 
 TArray<uint8_t> RT_PlatformCaptureWindow(int& pitch, ESSType& color_type, float& gamma)
 {
-	// the renderer presents straight to the window's Metal layer, which can't be read back
+	// the renderer presents straight to the window's Metal layer, which can't be read back;
+	// instead, the screenshot key asks the Metal layer for a frame dump of the renderer's
+	// buffers (a diagnostic, see MetalNative.mm: metal-dump.txt, written to metal-dump-*)
+	if (FILE* f = fopen("metal-dump.txt", "w"))
+	{
+		fputs("0\n", f);
+		static const char* const names[] = {
+			"Framebuf Final", "Framebuf PreFinal", "Framebuf Upscaled", "Framebuf HudOnly",
+			"Framebuf Unfiltered", "Framebuf DiffAccumColor", "Framebuf DiffPing", "Framebuf DiffPong",
+			"Framebuf IndirAccum", "Framebuf IndirPing", "Framebuf SpecAccumColor", "Framebuf Albedo",
+			"Framebuf IsSky", "Framebuf Normal", "Framebuf Scattering", "Framebuf ScreenEmis",
+			"Framebuf Reservoirs", "Framebuf Bloom", "Framebuf WipeEffectSource", "Framebuf Motion",
+			"Framebuf DepthNdc", "Framebuf DepthWorld", "Framebuf AccumHistoryLength", "Framebuf Throughput",
+			"Framebuf SurfacePosition", "Framebuf MetallicRoughness", "Uniform buffer",
+		};
+		for (const char* n : names)
+		{
+			fprintf(f, "%s\n", n);
+		}
+		fclose(f);
+		Printf("Screenshot: the renderer's buffers are being saved to a metal-dump folder (for diagnosis)\n");
+	}
 	pitch = 0;
 	color_type = SS_RGB;
 	gamma = 1.0f;
