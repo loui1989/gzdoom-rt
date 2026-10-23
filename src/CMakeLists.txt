@@ -1458,7 +1458,7 @@ endif()
 if( APPLE )
 	set( LINK_FRAMEWORKS "-framework Cocoa -framework IOKit -framework OpenGL")
 
-	if( HAVE_VULKAN )
+	if( HAVE_VULKAN OR HAVE_RT )
 		set( LINK_FRAMEWORKS "${LINK_FRAMEWORKS} -framework QuartzCore" )
 	endif()
 
