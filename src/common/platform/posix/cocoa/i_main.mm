@@ -433,12 +433,25 @@ extern void RT_OnHwndActivate(bool active);
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
 	[self sendExitEvent:sender];
+#if HAVE_RT
+	// the game loop exits on its own (sendExitEvent), and quits the application
+	return NSTerminateCancel;
+#else
 	return NSTerminateLater;
+#endif
 }
 
 - (void)sendExitEvent:(id)sender
 {
+#if HAVE_RT
+	// an exception thrown through AppKit's action and event dispatch ends the process
+	// (abort, settings not saved) on current macOS: ask the game loop to exit instead,
+	// as the Windows build does for WM_CLOSE (i_input.cpp)
+	extern bool g_rt_forcequit;
+	g_rt_forcequit = true;
+#else
 	throw CExitEvent(0);
+#endif
 }
 
 @end
