@@ -408,7 +408,9 @@ public:
 			NSView* const rtView = [[VulkanCocoaView alloc] initWithFrame:contentRect];
 			rtView.wantsLayer = YES;
 			rtView.layer.backgroundColor = NSColor.blackColor.CGColor;
-			rtView.layer.contentsScale = ms_window.backingScaleFactor;
+			// vid_hidpi 0: the frame is made at the window's size in points (on a Retina
+			// display, half the pixels each way) and the system scales it up
+			rtView.layer.contentsScale = vid_hidpi ? ms_window.backingScaleFactor : 1.0;
 
 			[ms_window setContentView:rtView];
 
@@ -1107,7 +1109,7 @@ void RT_PlatformGetScreenSize(int& width, int& height)
 	NSWindow* const window = CocoaVideo::GetWindow();
 	NSScreen* const screen = (window != nil && window.screen != nil) ? window.screen : [NSScreen mainScreen];
 	const NSRect frame = [screen frame];
-	const CGFloat scale = [screen backingScaleFactor];
+	const CGFloat scale = vid_hidpi ? [screen backingScaleFactor] : 1.0;
 
 	width = int(frame.size.width * scale);
 	height = int(frame.size.height * scale);
