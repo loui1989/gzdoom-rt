@@ -1352,9 +1352,14 @@ namespace firststart
             }
             if( cvar::rt_upscale_fsr2 > 0 && cvar::rt_available_fsr2 )
             {
+#ifdef __APPLE__
+                // the upscaler slot is Apple's MetalFX on macOS (RTGL1 FSR2_Metal.mm)
+                return "MetalFX";
+#else
                 return cvar::rt_framegen && cvar::rt_available_fsr3fg //
                            ? "FSR + FG"
                            : "FSR";
+#endif
             }
             return "Custom";
         };

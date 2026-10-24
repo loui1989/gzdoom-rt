@@ -2029,6 +2029,14 @@ static void GetCmdLineFiles(std::vector<std::string>& wadfiles)
 		I_FatalError("Can't find rt/wad directory");
 	}
 	D_AddWildFile(wadfiles, "rt/wad", nullptr /* ignored */, GameConfig);
+#ifdef __APPLE__
+	// macOS: the RT menu relabelled for MetalFX, without the rows of Windows / NVIDIA
+	// features (written by the app's launcher from rt/wad); replaces rt/wad's copies
+	if (DirEntryExists("rt/wad-mac"))
+	{
+		D_AddWildFile(wadfiles, "rt/wad-mac", nullptr /* ignored */, GameConfig);
+	}
+#endif
 #endif
 }
 

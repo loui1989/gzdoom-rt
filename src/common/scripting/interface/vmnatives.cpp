@@ -1550,6 +1550,63 @@ DEFINE_ACTION_FUNCTION(DListMenuItemSelectable, IsRtxRemix2)
 
 static auto RT_GetDescription( std::string_view rtkey, bool forFirstStartMenu = false ) -> std::span< const char* >
 {
+#ifdef __APPLE__
+    // macOS: the upscaler is Apple's MetalFX, and there is no DXGI, HDR output, frame
+    // generation or Ray Reconstruction (their rows are left out of the menu there)
+    if( rtkey == "RTMNU_WINDOW_RESOL" )
+    {
+        static const char* lines[] = {
+            "The resolution of the image on screen.",
+            "",
+            "In fullscreen, a lower resolution stays fullscreen:",
+            "the game is drawn at that size and macOS scales it to the screen.",
+            "The upscaler and the post effects run at this resolution, so",
+            "lowering it raises the frame rate a lot on a Retina / 4K screen.",
+            "",
+            "In a window (Cmd+Enter), it sets the window size.",
+        };
+        return lines;
+    }
+    if( rtkey == "RTMNU_MODE" )
+    {
+        static const char* lines[] = {
+            "Technique to apply to upscale from",
+            "a render resolution to the screen resolution.",
+            "",
+            "Apple MetalFX -- temporal upscaling,",
+            "built into macOS for Apple silicon GPUs.",
+            "",
+            "Vintage techniques render at 90s displays' resolution.",
+        };
+        if( forFirstStartMenu )
+        {
+            return std::span{ lines, std::size( lines ) - 2 };
+        }
+        return lines;
+    }
+    if( rtkey == "RTMNU_PRESET" )
+    {
+        static const char* lines[] = {
+            "Main setting to control GPU PERFORMANCE:",
+            "the render resolution, relative to the screen resolution.",
+            "",
+            "      Ultra Perf. -- highest performance (1/3)              ",
+            "      Performance -- better performance than Balanced (1/2) ",
+            "         Balanced -- optimal image quality and performance  ",
+            "          Quality -- higher image quality than Balanced     ",
+            "           Native -- only anti-aliasing, no upscaling       ",
+        };
+        return lines;
+    }
+    if( rtkey == "RTMNU_DXGI" || rtkey == "RTMNU_HDR" || rtkey == "RTMNU_FRAMEGEN" ||
+        rtkey == "RTMNU_RAYRECONST" )
+    {
+        static const char* lines[] = {
+            "Not available on macOS.",
+        };
+        return lines;
+    }
+#endif
     if( rtkey == "RTMNU_WINDOW_RESOL" )
     {
         static const char* lines[] = {
@@ -1771,9 +1828,14 @@ static auto RT_GetErrorsFor( std::string_view rtkey ) -> std::vector< const char
             ( cvar::rt_failreason_fsr2 || cvar::rt_failreason_fsr3fg ) )
         {
             errors.push_back(
+#ifdef __APPLE__
+                "MetalFX failed:"
+#else
                 cvar::rt_failreason_fsr2 && cvar::rt_failreason_fsr3fg    ? "AMD FSR 2/3 failed:"
                 : cvar::rt_failreason_fsr2 && !cvar::rt_failreason_fsr3fg ? "AMD FSR 2 failed:"
-                                                                          : "AMD FSR 3 failed:" );
+                                                                          : "AMD FSR 3 failed:"
+#endif
+            );
             errors.push_back( cvar::rt_failreason_fsr2 ? cvar::rt_failreason_fsr2
                                                        : cvar::rt_failreason_fsr3fg );
         }
