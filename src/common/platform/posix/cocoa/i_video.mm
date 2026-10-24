@@ -120,12 +120,14 @@ CUSTOM_CVAR(Int, vid_rt_fullscreen_height, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG |
 	SystemBaseFrameBuffer::UseHiDPI(vid_hidpi);
 }
 
-// pixels per point of the RT view's layer: the screen's backing scale (vid_hidpi), or
-// lower in fullscreen for vid_rt_fullscreen_height
+// pixels per point of the RT view's layer: the screen's backing scale, or lower in
+// fullscreen for vid_rt_fullscreen_height. vid_hidpi is not used: halving the
+// resolution is one of the choices of the resolution list, and with it off the
+// screen looked like a 1080p one to that list, so nothing else could be picked.
 static CGFloat RT_LayerScale(NSWindow* window, bool fullscreen)
 {
 	NSScreen* const screen = (window != nil && window.screen != nil) ? window.screen : [NSScreen mainScreen];
-	CGFloat scale = vid_hidpi ? screen.backingScaleFactor : 1.0;
+	CGFloat scale = screen.backingScaleFactor;
 	if (fullscreen && vid_rt_fullscreen_height > 0)
 	{
 		const CGFloat points = screen.frame.size.height;
@@ -1156,7 +1158,7 @@ void RT_PlatformGetScreenSize(int& width, int& height)
 	NSWindow* const window = CocoaVideo::GetWindow();
 	NSScreen* const screen = (window != nil && window.screen != nil) ? window.screen : [NSScreen mainScreen];
 	const NSRect frame = [screen frame];
-	const CGFloat scale = vid_hidpi ? [screen backingScaleFactor] : 1.0;
+	const CGFloat scale = [screen backingScaleFactor];
 
 	width = int(frame.size.width * scale);
 	height = int(frame.size.height * scale);
