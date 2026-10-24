@@ -832,6 +832,11 @@ ADD_STAT(fps)
 	return FStringf("%2llu ms (%3llu fps)", (unsigned long long)LastMSCount , (unsigned long long)LastFPS);
 }
 
+// g_weaponwheel.cpp
+bool G_WeaponWheelMouseMove(event_t *ev);
+void G_WeaponWheelFrame();
+void G_WeaponWheelDraw();
+
 static void DrawRateStuff()
 {
 	static uint64_t LastMS = 0, LastSec = 0, FrameCount = 0, LastTic = 0;
@@ -920,6 +925,8 @@ void D_Display ()
 	{
 		return;
 	}
+
+	G_WeaponWheelFrame ();
 
 	cycle_t cycles;
 	
@@ -1126,6 +1133,7 @@ void D_Display ()
 
 	if (!hud_toggled)
 	{
+		G_WeaponWheelDraw ();
 		CT_Drawer ();
 
 		// draw pause pic
@@ -2921,6 +2929,10 @@ bool System_WantLeftButton()
 static bool System_DispatchEvent(event_t* ev)
 {
 	shiftState.AddEvent(ev);
+
+	// the weapon wheel's cursor takes the mouse while it's open
+	if (G_WeaponWheelMouseMove(ev))
+		return true;
 
 #if HAVE_RT
 	if (ev->type == EV_Mouse)
