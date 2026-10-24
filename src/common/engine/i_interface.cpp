@@ -25,7 +25,12 @@ FStartupInfo GameStartupInfo;
 
 CVAR(Bool, queryiwad, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG);
 CVAR(String, defaultiwad, "", CVAR_ARCHIVE | CVAR_GLOBALCONFIG);
+#if defined(__APPLE__) && HAVE_RT
+// the macOS RT build shows the frame rate by default, and remembers when it's turned off
+CVAR(Bool, vid_fps, true, CVAR_ARCHIVE)
+#else
 CVAR(Bool, vid_fps, false, 0)
+#endif
 
 EXTERN_CVAR(Bool, ui_generic)
 
