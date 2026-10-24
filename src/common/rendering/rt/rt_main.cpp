@@ -1228,6 +1228,15 @@ void RT_UpscaleCvarsToRtgl( RgStartFrameRenderResolutionParams* pDst )
     // DLSS (RenderResolutionHelper::Setup), so requesting RR alongside any
     // other upscaler is a contradiction that silently costs the denoiser.
     pDst->rayReconstruction = 0;
+#ifdef __APPLE__
+    // macOS: "Ray Reconstruction" is the MetalFX denoiser, which works with the MetalFX upscaler
+    // (the FSR2 slot); frame generation (MetalFX frame interpolation) can stay on with it
+    if( wantNativeRr && amdFsr != 0 &&
+        pDst->upscaleTechnique == RG_RENDER_UPSCALE_TECHNIQUE_AMD_FSR2 )
+    {
+        pDst->rayReconstruction = 1;
+    }
+#else
     if( wantNativeRr && nvDlss != 0 &&
         pDst->upscaleTechnique == RG_RENDER_UPSCALE_TECHNIQUE_NVIDIA_DLSS )
     {
@@ -1238,6 +1247,7 @@ void RT_UpscaleCvarsToRtgl( RgStartFrameRenderResolutionParams* pDst )
             cvar::rt_framegen = 0;
         }
     }
+#endif
 
     // Cached for the rt_rr_status CCMD (RTGL's own DLSSRR messages are muted
     // unless -rtdebug, so this is the only in-game view of the decision chain).

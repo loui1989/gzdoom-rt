@@ -1598,11 +1598,33 @@ static auto RT_GetDescription( std::string_view rtkey, bool forFirstStartMenu = 
         };
         return lines;
     }
-    if( rtkey == "RTMNU_DXGI" || rtkey == "RTMNU_HDR" || rtkey == "RTMNU_FRAMEGEN" ||
-        rtkey == "RTMNU_RAYRECONST" )
+    if( rtkey == "RTMNU_DXGI" || rtkey == "RTMNU_HDR" )
     {
         static const char* lines[] = {
             "Not available on macOS.",
+        };
+        return lines;
+    }
+    if( rtkey == "RTMNU_FRAMEGEN" )
+    {
+        static const char* lines[] = {
+            "MetalFX Frame Interpolation:",
+            "insert a generated frame in-between actual frames.",
+            "Because it's a virtual frame, expect a higher input latency.",
+            "Works best with a stable 'actual' frame rate, 50+ FPS.",
+            "",
+            "Needs macOS 26 and the MetalFX upscaler (Mode is not Off).",
+        };
+        return lines;
+    }
+    if( rtkey == "RTMNU_RAYRECONST" )
+    {
+        static const char* lines[] = {
+            "MetalFX Denoiser:",
+            "denoise and upscale the path traced image with MetalFX,",
+            "instead of the game's own denoiser + the MetalFX upscaler.",
+            "",
+            "Needs macOS 26 and the MetalFX upscaler (Mode is not Off).",
         };
         return lines;
     }
@@ -1812,6 +1834,20 @@ static auto RT_GetErrorsFor( std::string_view rtkey ) -> std::vector< const char
         const bool dlssChosen = cvar::rt_upscale_dlss > 0;
         const bool fsrChosen  = cvar::rt_upscale_fsr2 > 0;
         const bool noneChosen = !dlssChosen && !fsrChosen;
+
+#ifdef __APPLE__
+        // the upscaler for Mode / Preset, frame interpolation for FrameGen
+        {
+            const char* reason =
+                rtkey == "RTMNU_FRAMEGEN" ? cvar::rt_failreason_fsr3fg : cvar::rt_failreason_fsr2;
+            if( reason )
+            {
+                errors.push_back( "MetalFX failed:" );
+                errors.push_back( reason );
+            }
+            return errors;
+        }
+#endif
 
         if( ( dlssChosen || noneChosen ) &&
             ( cvar::rt_failreason_dlss2 || cvar::rt_failreason_dlss3fg ) )
