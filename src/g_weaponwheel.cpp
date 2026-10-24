@@ -141,7 +141,7 @@ namespace
 			return true; // fist, chainsaw
 		}
 		return ( needs1 && HasAmmo( weapon, NAME_Ammo1, NAME_AmmoUse1 ) ) ||
-		       ( needs2 && HasAmmo( weapon, NAME_Ammo2, nAmmoUse2 ) ) || ( !needs1 && needs2 );
+		       ( needs2 && HasAmmo( weapon, NAME_Ammo2, nAmmoUse2 ) );
 	}
 
 	// angle of entry i, clockwise from 12 o'clock (screen y points down)
