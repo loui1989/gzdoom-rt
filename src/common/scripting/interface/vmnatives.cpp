@@ -1423,6 +1423,24 @@ DEFINE_ACTION_FUNCTION(DListMenuItemTextItem_RT, ApplyResolution)
     PARAM_BOOL(fullscreen);
 
 	const auto [width_fs, height_fs] = GetFullscreen();
+
+#ifdef __APPLE__
+	// macOS, while fullscreen: a resolution below the screen's stays fullscreen and only
+	// changes the size the frame is made at (the system scales it to the screen), as a
+	// fullscreen mode does elsewhere; the screen's own size goes back to native. Leave
+	// fullscreen (Cmd+Enter / vid_fullscreen) to resize the window instead.
+	{
+		EXTERN_CVAR( Int, vid_rt_fullscreen_height )
+		EXTERN_CVAR( Bool, vid_fullscreen )
+		if (vid_fullscreen)
+		{
+			const bool native = width >= width_fs && height >= height_fs;
+			vid_rt_fullscreen_height = native ? 0 : std::max(200, height);
+			return 0;
+		}
+	}
+#endif
+
 	fullscreen = fullscreen || (width == width_fs && height == height_fs);
 
     if (fullscreen)

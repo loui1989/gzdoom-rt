@@ -104,6 +104,40 @@ extern bool ToggleFullscreen;
 @end
 
 EXTERN_CVAR(Bool, vid_hidpi)
+
+#if HAVE_RT
+// The fullscreen frame's height in pixels, 0 = the screen's own. The window stays
+// fullscreen and the system scales the frame up to the screen, so a lower resolution
+// costs no switch to windowed mode (the RT menu's resolution list sets it while
+// fullscreen; see ApplyResolution in vmnatives.cpp).
+CUSTOM_CVAR(Int, vid_rt_fullscreen_height, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
+{
+	if (self < 0)
+	{
+		self = 0;
+		return;
+	}
+	SystemBaseFrameBuffer::UseHiDPI(vid_hidpi);
+}
+
+// pixels per point of the RT view's layer: the screen's backing scale (vid_hidpi), or
+// lower in fullscreen for vid_rt_fullscreen_height
+static CGFloat RT_LayerScale(NSWindow* window, bool fullscreen)
+{
+	NSScreen* const screen = (window != nil && window.screen != nil) ? window.screen : [NSScreen mainScreen];
+	CGFloat scale = vid_hidpi ? screen.backingScaleFactor : 1.0;
+	if (fullscreen && vid_rt_fullscreen_height > 0)
+	{
+		const CGFloat points = screen.frame.size.height;
+		const CGFloat wanted = points > 0 ? CGFloat(*vid_rt_fullscreen_height) / points : scale;
+		if (wanted > 0.1 && wanted < scale)
+		{
+			scale = wanted;
+		}
+	}
+	return scale;
+}
+#endif
 EXTERN_CVAR(Int,  vid_defwidth)
 EXTERN_CVAR(Int,  vid_defheight)
 EXTERN_CVAR(Bool, vk_debug)
@@ -410,7 +444,7 @@ public:
 			rtView.layer.backgroundColor = NSColor.blackColor.CGColor;
 			// vid_hidpi 0: the frame is made at the window's size in points (on a Retina
 			// display, half the pixels each way) and the system scales it up
-			rtView.layer.contentsScale = vid_hidpi ? ms_window.backingScaleFactor : 1.0;
+			rtView.layer.contentsScale = RT_LayerScale(ms_window, vid_fullscreen);
 
 			[ms_window setContentView:rtView];
 
@@ -682,7 +716,11 @@ void SystemBaseFrameBuffer::SetMode(const bool fullscreen, const bool hiDPI)
     {
 		assert(m_window.screen != nil);
 		assert([m_window.contentView layer] != nil);
+#if HAVE_RT
+		[m_window.contentView layer].contentsScale = RT_LayerScale(m_window, fullscreen);
+#else
 		[m_window.contentView layer].contentsScale = hiDPI ? m_window.screen.backingScaleFactor : 1.0;
+#endif
 	}
 
 	if (vid_nativefullscreen && fullscreen != m_fullscreen)
@@ -912,6 +950,15 @@ NSSize I_GetContentViewSize(const NSWindow* const window)
 {
 	const NSView* const view = [window contentView];
 	const NSSize frameSize   = [view frame].size;
+
+#if HAVE_RT
+	// the size the frame is made at: the layer's scale (RT_LayerScale)
+	if (view.layer != nil)
+	{
+		const CGFloat scale = view.layer.contentsScale;
+		return NSMakeSize(std::round(frameSize.width * scale), std::round(frameSize.height * scale));
+	}
+#endif
 
 	return (vid_hidpi)
 		? [view convertSizeToBacking:frameSize]
