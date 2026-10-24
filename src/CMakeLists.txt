@@ -848,6 +848,7 @@ set (PCH_SOURCES
 	g_dumpinfo.cpp
 	g_game.cpp
 	g_weaponwheel.cpp
+	rt_lookat.cpp
 	g_hub.cpp
 	g_level.cpp
 	gameconfigfile.cpp
